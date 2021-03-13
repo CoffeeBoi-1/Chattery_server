@@ -7,11 +7,10 @@ const { Socket } = require('socket.io');
 const $ = require('coffeetils')
 
 const MAIN_ROUTER = {}
+MAIN_ROUTER.GAME_SESSIONS = {}
 MAIN_ROUTER.serverRequests = {}
 MAIN_ROUTER.ingameRequests = {}
 MAIN_ROUTER.io = io
-
-const GAME_SESSIONS = {}
 
 const requestFiles = readdirSync(join(__dirname, 'ServerRequests')).filter((file) => file.endsWith('.js'));
 for (const file of requestFiles) {
@@ -27,34 +26,44 @@ for (const file of requestFilesIngame) {
   MAIN_ROUTER.ingameRequests[requestName] = request
 }
 
-app.get('/host_room', (req, res) =>{
-  res.sendFile(__dirname+'/index.html')
-})
-
 app.all('*', (req, res, next) => {
-  const path = req.path.replace("/", "")
-  const command = MAIN_ROUTER.serverRequests[path]
+  try {
+    const path = req.path.replace("/", "")
+    const command = MAIN_ROUTER.serverRequests[path]
 
-  if (!req.query.obj) return res.sendStatus(400)
-  req.query.obj = req.query.obj.replace(/'/g, `"`)
-  if (!$.IsJsonString(req.query.obj)) return res.sendStatus(400)
+    if (!req.query.obj) return res.sendStatus(400)
+    req.query.obj = req.query.obj.replace(/'/g, `"`)
+    if (!$.IsJsonString(req.query.obj)) return res.sendStatus(400)
 
-  const args = JSON.parse(req.query.obj)
+    const args = JSON.parse(req.query.obj)
 
-  if (!command) return res.sendStatus(400);
+    if (!command) return res.sendStatus(400);
 
-  command.execute(MAIN_ROUTER, args, res)
-  next();
+    command.execute(MAIN_ROUTER, args, res)
+    next();
+  } catch (error) {
+    console.log(error)
+  }
 });
-  
+
 io.on('connection', (socket) => {
-    socket.join("aa")
+  try {
     console.log('user connected');
+
     socket.on('disconnect', () => {
       console.log('user disconnected');
     });
+
+    socket.onAny((eventName, ...args) => {
+      const command = MAIN_ROUTER.ingameRequests[eventName]
+      if (!command) return
+      command.execute(MAIN_ROUTER, args, socket)
+    });
+  } catch (error) {
+    console.log(error)
+  }
 })
-  
+
 http.listen(3000, () => {
-    console.log('Main router is running!');
+  console.log('Main router is running!');
 });
