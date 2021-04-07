@@ -3,10 +3,19 @@ const http = require('http').Server(app);
 const io = require('socket.io')(http);
 const { readdirSync } = require('fs');
 const { join } = require('path');
+const readline = require('readline');
 const { Socket } = require('socket.io');
 const $ = require('coffeetils')
 
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+const CONSOLE_COMMANDS = {}
+
 const MAIN_ROUTER = {}
+MAIN_ROUTER.CONSOLE_COMMANDS = CONSOLE_COMMANDS
 MAIN_ROUTER.GAME_SESSIONS = {}
 MAIN_ROUTER.serverRequests = {}
 MAIN_ROUTER.ingameRequests = {}
@@ -24,6 +33,13 @@ for (const file of requestFilesIngame) {
   const request = require(join(__dirname, 'GameSession\\IngameRequests', `${file}`));
   let requestName = request.name;
   MAIN_ROUTER.ingameRequests[requestName] = request
+}
+
+const consoleCommands = readdirSync(join(__dirname, 'ConsoleCommands')).filter((file) => file.endsWith('.js'));
+for (const file of consoleCommands) {
+  const command = require(join(__dirname, 'ConsoleCommands', `${file}`));
+  let commandName = command.name;
+  CONSOLE_COMMANDS[commandName] = command
 }
 
 app.all('*', (req, res, next) => {
@@ -48,10 +64,32 @@ app.all('*', (req, res, next) => {
 
 io.on('connection', (socket) => {
   try {
-    console.log('user connected');
-
     socket.on('disconnect', () => {
-      console.log('user disconnected');
+    });
+
+    socket.on('disconnecting', () => {
+      try {
+        var rooms = socket.rooms;
+        rooms.delete(rooms.values().next().value)
+        var room = rooms.values().next().value
+        socket.leave(room)
+
+        if (!MAIN_ROUTER.GAME_SESSIONS[room]) return
+
+        MAIN_ROUTER.GAME_SESSIONS[room].CheckForDeleteSession(MAIN_ROUTER, socket)
+
+        if (!MAIN_ROUTER.io.sockets.adapter.rooms.get(room)) return
+        if (!MAIN_ROUTER.GAME_SESSIONS[room]) return
+
+        if (MAIN_ROUTER.GAME_SESSIONS[room].sockets[socket.id]) delete MAIN_ROUTER.GAME_SESSIONS[room].sockets[socket.id]
+
+        socket.to(room).emit("player_disconnected", {
+          "currentPlayersAmount": MAIN_ROUTER.io.sockets.adapter.rooms.get(room).size,
+          "playersAmount": MAIN_ROUTER.GAME_SESSIONS[room].playersAmount
+        })
+      } catch (error) {
+        console.log(error)
+      }
     });
 
     socket.onAny((eventName, ...args) => {
@@ -67,3 +105,9 @@ io.on('connection', (socket) => {
 http.listen(3000, () => {
   console.log('Main router is running!');
 });
+
+rl.on('line', (data) => {
+  const command = CONSOLE_COMMANDS[data]
+  if (!command) return
+  command.execute(MAIN_ROUTER)
+})
