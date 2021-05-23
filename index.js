@@ -30,9 +30,9 @@ for (const file of requestFiles) {
   MAIN_ROUTER.serverRequests[requestName] = request
 }
 
-const requestFilesIngame = readdirSync(join(__dirname, 'GameSession\\IngameRequests')).filter((file) => file.endsWith('.js'));
+const requestFilesIngame = readdirSync(join(__dirname, 'GameSession/IngameRequests')).filter((file) => file.endsWith('.js'));
 for (const file of requestFilesIngame) {
-  const request = require(join(__dirname, 'GameSession\\IngameRequests', `${file}`));
+  const request = require(join(__dirname, 'GameSession/IngameRequests', `${file}`));
   let requestName = request.name;
   MAIN_ROUTER.ingameRequests[requestName] = request
 }
