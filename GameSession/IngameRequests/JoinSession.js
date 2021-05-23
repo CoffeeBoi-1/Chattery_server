@@ -19,7 +19,7 @@ module.exports = {
 
     socket.emit("qr_code_data", `CHR$` + `{"sessionID":"${args[0].sessionID}", "password":"${args[0].password}"}`)
 
-    MAIN_ROUTER.GAME_SESSIONS[args[0].sessionID].sockets[socket.id] = {"nickname" : args[0].nickname}
+    MAIN_ROUTER.GAME_SESSIONS[args[0].sessionID].sockets[socket.id] = {"nickname" : args[0].nickname, "score" : 0}
     MAIN_ROUTER.GAME_SESSIONS[args[0].sessionID].CheckForFullGame(MAIN_ROUTER, socket)
   }
 };

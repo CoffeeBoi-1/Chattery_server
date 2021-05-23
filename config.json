@@ -1,0 +1,6 @@
+{
+    "minPlayersAmount" : 3,
+    "maxPlayersAmount" : 6,
+    "roundsAmount" : 6,
+    "afkTimeout" : 120000
+}
