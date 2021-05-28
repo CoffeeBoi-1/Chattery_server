@@ -3,6 +3,7 @@ logs
 *.log
 ngrok.exe
 *.exe
+.vs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
